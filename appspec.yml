@@ -1,0 +1,66 @@
+#This file is used to instruct AWS CodeDeploy on how to deploy this code to the AWS Environemnt.
+# It is based off tw0 sample files
+# Sample 1: https://aws.amazon.com/codedeploy/faqs/
+# Sammple 2: https://docs.aws.amazon.com/codedeploy/latest/userguide/application-revisions-appspec-file.html#add-appspec-file-server
+
+# For help completing this file, see the "AppSpec File Reference" in the  
+#   "CodeDeploy User Guide" at
+#   https://docs.aws.amazon.com/codedeploy/latest/userguide/app-spec-ref.html
+
+---
+
+#This refers to the version of the YAML template from AWS. 
+#This is NOT a version number that should be updated upon each revision of content.
+#As per AWS, this if fixed at version 0.0 for the foreseeable future (https://docs.aws.amazon.com/codedeploy/latest/userguide/reference-appspec-file-structure.html)
+version: 0.0
+
+os: linux
+
+files: 
+
+# Specifies where files from S3 are being copied to (in each of the EC2s in the autoscale group). 
+# The S3 bucket and location for the source code is specified in the call to AWS CodeDeploy.
+# The call to AWS CodeDeploy can be found in .gitlab.ci-yml in the deploy job for dev and prod.
+# The '/' here is relevant to the bucket and file denoted in .gitlab.ci-yml.'
+# As such '/' here simply indicates that the source file is the same file and bucket denoted in the call to AWS CodeDeploy.
+
+  - source: /
+
+    destination: /home/ubuntu/app/rest-api
+
+hooks:
+
+ # This section specifies what scripts are run at various parts in the deployment lifecycle.
+ # The stages of the deployment lifecycle are pre-defined by AWS. 
+ # For more details on each stage of the deployment life cycle visit this link: https://aws.amazon.com/codedeploy/faqs/
+ # The locations below are locations that are relative to the 'source' folder in the 'files' section above. 
+ # The timeouts belows are in seconds. If the script does not complete within the alloted timeout, the deployment is marked as failed. 
+
+#   ApplicationStop: 
+
+# # Step 1: Kill the existing process running on the server
+
+#     - location: scripts/1_application_stop.sh
+#       timeout: 60
+#       runas: ec2-user
+
+  BeforeInstall: 
+# Step 2: Set env file with all required values
+    - location: scripts_code_deploy/npm_install.sh
+      timeout: 60
+      runas: ubuntu
+
+  AfterInstall: 
+
+# Step 3: Install node modules 
+
+    - location: scripts_code_deploy/build.sh
+      timeout: 500
+      runas: root
+
+
+# Step 4: Start the new process
+  ApplicationStart: 
+    - location: scripts_code_deploy/pm2.sh
+      timeout: 60
+      runas: root

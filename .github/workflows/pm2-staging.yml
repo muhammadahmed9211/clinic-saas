@@ -1,0 +1,48 @@
+name: Deploy to Self-Hosted Runner
+
+on:
+  push:
+    branches:
+      - pm2-pipeline-check
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: org-runner
+    
+    steps:
+      - name: Navigate to app directory and pull latest code
+        run: |
+          cd /home/ubuntu/app/${{ github.event.repository.name }}
+          git reset --hard HEAD
+          git clean -fd
+          git pull origin ${{ github.ref_name }}
+      
+      - name: Build Docker image
+        run: |
+          cd /home/ubuntu/app/${{ github.event.repository.name }}
+          # ECR login removed - Docker images are no longer exported to AWS
+          docker build -t ${{ github.event.repository.name }}:latest .
+      
+      - name: Stop and remove old container
+        run: |
+          docker stop ${{ github.event.repository.name }} || true
+          docker rm ${{ github.event.repository.name }} || true
+        continue-on-error: true
+      
+      - name: Run new Docker container
+        run: |
+          docker run -d \
+            --name ${{ github.event.repository.name }} \
+            --restart unless-stopped \
+            -p 3000:3000 \
+            ${{ github.event.repository.name }}:latest
+      
+      - name: Clean up old Docker images
+        run: |
+          docker image prune -f
+        continue-on-error: true
+      
+      - name: Verify container is running
+        run: |
+          docker ps | grep ${{ github.event.repository.name }}

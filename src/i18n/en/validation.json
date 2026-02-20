@@ -1,0 +1,18 @@
+{
+  "NOT_EMPTY": "{property} cannot be empty",
+  "INVALID_EMAIL": "email is invalid",
+  "INVALID_BOOLEAN": "{property} is not a boolean",
+  "MIN": "{value} needs to be at least {constraints.0}",
+  "MAX": "{value} needs to be less than {constraints.0}",
+  "PASSWORD_LENGTH": "Password must contain at least one uppercase letter, one digit, and one special character. Minimum length is 8 characters.",
+  "IS_STRING": "{property} must be a string",
+  "IS_NUMBER": "{property} must be a number",
+  "INVALID_ID": "Invalid {property} id",
+  "NOT_EXIST": "{property} does not exist",
+  "LENGTH": "{property} must be at least {constraints.0} characters long",
+  "INVALID_TELEPHONE_PREFIX": "Telephone prefix cannot contain '+' sign",
+  "IS_DATE": "{property} must be a date",
+  "IS_BOOLEAN": "{property} must be a boolean",
+  "INVALID_DATA_TYPE": "{property} must be a only {constraints.0}",
+  "INVALID_NAME_FORMAT": "{property} must contain only letters"
+}

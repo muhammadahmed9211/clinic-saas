@@ -1,0 +1,24 @@
+# TODO: DevOP will be confirgure this for CI
+services:
+  # Uncomment to use redis
+  # redis:
+  #   image: redis:7-alpine
+  #   expose:
+  #     - 6379
+
+  # maildev:
+  #   build:
+  #     context: .
+  #     dockerfile: maildev.Dockerfile
+  #   expose:
+  #     - 1080
+  #     - 1025
+
+  # api:
+  #   build:
+  #     context: .
+  #     dockerfile: e2e.Dockerfile
+
+
+volumes:
+  mssql-data:

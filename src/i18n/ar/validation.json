@@ -1,0 +1,18 @@
+{
+    "NOT_EMPTY": "{property} لا يمكن أن يكون فارغًا",
+    "INVALID_EMAIL": "البريد الإلكتروني غير صالح",
+    "INVALID_BOOLEAN": "{property} ليس بوليانيًا",
+    "MIN": "{value} يجب أن يكون على الأقل {constraints.0}",
+    "MAX": "{value} يجب أن يكون أقل من {constraints.0}",
+    "PASSWORD_LENGTH": "يجب أن تحتوي كلمة المرور على حرف كبير واحد ورقم واحد وحرف خاص واحد على الأقل. الحد الأدنى للطول هو 8 أحرف.",
+    "IS_STRING": "يجب أن تكون {property} سلسلة",
+    "IS_NUMBER": "يجب أن تكون {property} رقمًا",
+    "INVALID_ID": "معرف {property} غير صالح",
+    "NOT_EXIST": "{property} غير موجودة",
+    "LENGTH": "يجب أن يبلغ طول {property} {constraints.0} من الأحرف على الأقل",
+    "INVALID_TELEPHONE_PREFIX": "لا يمكن أن تحتوي بادئة الهاتف على علامة '+'.",
+    "IS_DATE": "يجب أن يكون {property} تاريخًا",
+    "IS_BOOLEAN": "يجب أن تكون {property} قيمة منطقية",
+    "INVALID_DATA_TYPE": "يجب أن تكون {property} فقط {constraints.0}",
+    "INVALID_NAME_FORMAT": "يجب أن تحتوي {property} على أحرف فقط"
+}

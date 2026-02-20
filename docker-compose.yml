@@ -1,0 +1,34 @@
+services:
+  rest-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.simple
+    container_name: crm-rest-api
+    ports:
+      - "3005:3005"
+    env_file:
+      - .env
+    environment:
+      # Bind port same as .env (APP_PORT=3005)
+      APP_PORT: "3005"
+      # Override Kafka and Redis to use shared Docker services from root
+      # These override localhost values from .env when running in Docker
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ""
+      KAFKA_BROKERS: kafka:29092
+      KAFKA_BROKER: kafka:29092
+      ELASTIC_APM_SERVER_URL: http://apm-server:8200
+      ELASTICSEARCH_NODE: http://elasticsearch:9200
+      PM2_DISABLE_AUTO_START: "true"
+      PM2_DISABLE_WATCH: "true"
+    networks:
+      - crm-network
+    restart: unless-stopped
+    # Don't mount dist - it overwrites the built files
+    # Use direct node command
+    command: ["node", "dist/main.js"]
+
+networks:
+  crm-network:
+    external: true

@@ -1,0 +1,85 @@
+name: siliconfort kubernetes development Pipeline 
+
+on:
+  push:
+    branches:
+      - development
+jobs:
+  build:
+    runs-on: kubernetes-eks-server
+
+    strategy:
+      matrix:
+        branch:
+          - development
+
+    steps:
+      - name: Send start notification to Slack
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          REPO_NAME: siliconfort/rest-api
+        run: |
+          hashcommit=$(echo "$GITHUB_SHA" | cut -c1-8)
+          BRANCH_NAME=${GITHUB_REF#refs/heads/}
+          echo "BRANCH_NAME=${BRANCH_NAME}" >> $GITHUB_ENV
+          curl -X POST -H 'Content-type: application/json' --data "{\"text\":\"The GitHub Actions pipeline has started! Repository: ${REPO_NAME}, Branch: ${BRANCH_NAME}, Commit: <https://github.com/siliconfort/rest-api/commit/${GITHUB_SHA}|${hashcommit}>\"}" $SLACK_WEBHOOK_URL
+      - name: Start CodeBuild
+        run: |
+          error_exit()
+          {
+              echo "$1" 1>&2
+              exit 1
+          }
+
+          CODEBUILD_PROJECT_NAME=siliconfort-restapi-v2-development
+
+
+          echo "Starting CodeBuild project. Project name is ${CODEBUILD_PROJECT_NAME}."
+
+          START_RESULT=`aws codebuild start-build --project-name ${CODEBUILD_PROJECT_NAME}`
+          if [ "$?" != "0" ]; then
+              error_exit "Could not start CodeBuild project. Exiting."
+          else
+              echo "Build started successfully."
+          fi
+
+          BUILD_ID=`echo ${START_RESULT} | jq '.build.id' -r`
+
+          BUILD_STATUS="IN_PROGRESS"
+          while [ "$BUILD_STATUS" == "IN_PROGRESS" ]; do
+              sleep 10
+              echo "Checking build status."
+              BUILD=`aws codebuild batch-get-builds --ids ${BUILD_ID}`
+              BUILD_STATUS=`echo $BUILD | jq '.builds[0].buildStatus' -r`
+              if [ "$BUILD_STATUS" == "IN_PROGRESS" ]; then
+                  echo "Build is still in progress, waiting..."
+              fi
+          done
+
+          if [ "$BUILD_STATUS" != "SUCCEEDED" ]; then
+              LOG_URL=`echo $BUILD | jq '.builds[0].logs.deepLink' -r`
+              error_exit "Build failed, please review job output. Logs are available at $LOG_URL."
+          else
+              echo "Build succeeded."
+          fi
+      - name: Read for deployment
+        run: |
+          cd /home/ubuntu/eks/siliconfort-restapi-v2-development
+          hashcommit=$(echo "$GITHUB_SHA" | cut -c1-8)
+          echo $hashcommit
+          sed -i "s|image:.*|image: 396715832402.dkr.ecr.ap-southeast-1.amazonaws.com/siliconfort-restapi-v2-development:$hashcommit|" /home/ubuntu/eks/siliconfort-restapi-v2-development/deployment.yaml
+      - name: Deployment
+        run: |
+          cd /home/ubuntu/eks/siliconfort-restapi-v2-development
+          kubectl apply -f deployment.yaml
+          echo "deployed"
+          sleep 20
+      - name: Send start notification to Slack
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          REPO_NAME: siliconfort/rest-api
+        run: |
+          hashcommit=$(echo "$GITHUB_SHA" | cut -c1-8)
+          BRANCH_NAME=${GITHUB_REF#refs/heads/}
+          echo "BRANCH_NAME=${BRANCH_NAME}" >> $GITHUB_ENV
+          curl -X POST -H 'Content-type: application/json' --data "{\"text\":\"The GitHub Actions pipeline completed! Repository: ${REPO_NAME}, Branch: ${BRANCH_NAME}, Commit: <https://github.com/siliconfort/rest-api/commit/${GITHUB_SHA}|${hashcommit}>\"}" $SLACK_WEBHOOK_URL

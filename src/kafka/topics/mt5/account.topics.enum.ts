@@ -1,0 +1,17 @@
+export enum AccountTopics {
+  getAccountByLogin = 'get-account-by-login',
+  getMultipleAccounts = 'get-multiple-accounts',
+  getMultipleAccountsWithMargin = 'get-multiple-accounts-with-margin',
+  updateBalance = 'update-balance',
+  deleteAccount = 'delete-account',
+  createAccount = 'create-account',
+  updateAccount = 'update-account',
+  changePassword = 'change-password',
+  credit = 'credit',
+  bonus = 'bonus',
+  getAccountsByUser = 'get-accounts-by-user',
+  getAccountsByUserFromDb = 'get-accounts-by-user-from-db',
+  getDashboardData = 'get-dashboard-data',
+  getAllTradingAccounts = 'get-all-accounts',
+  getTradeState = 'trade-state',
+}

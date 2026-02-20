@@ -1,0 +1,73 @@
+name: siliconfort kubernetes staging Pipeline 
+
+on:
+  push:
+    branches:
+      - staging
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        branch:
+          - staging
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Send start notification to Slack
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          REPO_NAME: siliconfort/rest-api
+        run: |
+          hashcommit=$(echo "$GITHUB_SHA" | cut -c1-8)
+          BRANCH_NAME=${GITHUB_REF#refs/heads/}
+          echo "BRANCH_NAME=${BRANCH_NAME}" >> $GITHUB_ENV
+          curl -X POST -H 'Content-type: application/json' --data "{\"text\":\"The GitHub Actions pipeline has started! Repository: ${REPO_NAME}, Branch: ${BRANCH_NAME}, Commit: <https://github.com/siliconfort/rest-api/commit/${GITHUB_SHA}|${hashcommit}>\"}" $SLACK_WEBHOOK_URL
+      - name: Configure AWS credentials
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ap-southeast-1
+        run: |
+          echo "Configuring AWS credentials"
+          aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
+          aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
+          aws configure set region $AWS_REGION
+      
+      # ECR login and push removed - Docker images are no longer exported to AWS
+      - name: Build Docker image
+        run: |
+          hashcommit=$(echo "$GITHUB_SHA" | cut -c1-8)
+          echo "Building Docker image with tag: $hashcommit"
+          docker build -t siliconfort-restapi-staging:$hashcommit .
+          echo "Docker image built successfully (not pushed to ECR)"
+  deploy:
+    needs: build
+    runs-on: kubernetes-eks-server
+    
+    steps:
+      - name: Read for deployment
+        run: |
+          cd /home/ubuntu/eks/siliconfort-restapi-staging
+          hashcommit=$(echo "$GITHUB_SHA" | cut -c1-8)
+          echo $hashcommit
+          sed -i "s|image:.*|image: 396715832402.dkr.ecr.ap-southeast-1.amazonaws.com/siliconfort-restapi-staging:$hashcommit|" /home/ubuntu/eks/siliconfort-restapi-staging/deployment.yaml
+
+      - name: Deployment
+        run: |
+          cd /home/ubuntu/eks/siliconfort-restapi-staging
+          kubectl apply -f deployment.yaml
+          echo "deployed"
+          sleep 20
+      - name: Send start notification to Slack
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          REPO_NAME: siliconfort/rest-api
+        run: |
+          hashcommit=$(echo "$GITHUB_SHA" | cut -c1-8)
+          BRANCH_NAME=${GITHUB_REF#refs/heads/}
+          echo "BRANCH_NAME=${BRANCH_NAME}" >> $GITHUB_ENV
+          curl -X POST -H 'Content-type: application/json' --data "{\"text\":\"The GitHub Actions pipeline completed! Repository: ${REPO_NAME}, Branch: ${BRANCH_NAME}, Commit: <https://github.com/siliconfort/rest-api/commit/${GITHUB_SHA}|${hashcommit}>\"}" $SLACK_WEBHOOK_URL

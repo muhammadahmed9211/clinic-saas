@@ -1,0 +1,29 @@
+# Simple Single-Stage Dockerfile - Fastest for Local Development
+FROM node:20.9.0
+
+WORKDIR /app
+
+# Copy package files first (for better Docker layer caching)
+COPY package*.json ./
+
+# Install dependencies
+RUN npm install
+
+# Copy application code
+COPY . .
+
+# Remove ecosystem.config.js if it exists (prevents PM2 auto-detection)
+RUN rm -f ecosystem.config.js || true
+
+# Build the application
+RUN npm run build
+
+# Verify build succeeded
+RUN ls -la dist/ || (echo "Build failed - dist folder not found" && exit 1)
+RUN test -f dist/main.js || (echo "Build failed - dist/main.js not found" && exit 1)
+
+EXPOSE 3000
+
+# Clear ENTRYPOINT and use direct node command
+ENTRYPOINT []
+CMD ["node", "dist/main.js"]

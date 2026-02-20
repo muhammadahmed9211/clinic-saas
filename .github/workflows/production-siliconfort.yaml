@@ -1,0 +1,78 @@
+name: Deploy to Siliconfort Production
+
+on:
+  push:
+    branches: ["production"]
+  workflow_dispatch:  # Allows manual trigger
+
+env:
+  AWS_REGION: eu-west-2
+  ECR_REPOSITORY: siliconfort-prod-rest-api
+  ECS_SERVICE: siliconfort-prod-rest-api
+  ECS_CLUSTER: siliconfort-prod-cluster
+  ECS_TASK_DEFINITION: siliconfort-prod-rest-api
+  AWS_DEFAULT_REGION: eu-west-2
+  CONTAINER_NAME: siliconfort-prod-rest-api
+  SECRET_NAME: Siliconfort-Prod-rest-api-v2-SM
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy to Siliconfort
+    runs-on: ubuntu-latest
+    environment: siliconfort-production  # Uses environment-scoped secrets
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+          
+      - name: Create .env file
+        run: |
+          aws secretsmanager get-secret-value --secret-id ${{ env.SECRET_NAME }} --query SecretString --region ${{ env.AWS_REGION }} --output text | jq -r '. | to_entries | .[] | "\(.key)=\(.value)"' > .env
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, tag, and push image to Amazon ECR
+        id: build-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+      - name: Retrieve task def
+        uses: pagarme/ecs-task-def-replacements@main
+        id: task
+        with:
+          region: ${{ env.AWS_REGION }}
+          cluster-name: ${{ env.ECS_CLUSTER }}
+          service-name: ${{ env.ECS_SERVICE }}
+          replacements: |
+            {
+              "containerDefinitions": [{
+                "image": "${{ steps.build-image.outputs.image }}"
+              }]
+            }
+
+      - name: Deploy Amazon ECS task definition
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.task.outputs.taskDef }}
+          service: ${{ env.ECS_SERVICE }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true

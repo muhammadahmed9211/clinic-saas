@@ -1,0 +1,13 @@
+{
+  "confirmEmail": "Confirm email",
+  "resetPassword": "Reset password",
+  "otpEmailTitle": "Your OTP Code",
+  "otpText": "Your OTP code is:",
+  "passwordTitle": "Password Title",
+  "communicationEmailTitle": "Your communication email",
+  "leverageTitle": "Change Trading Leverage Request",
+  "agreementTitle": "FSCA Agreement",
+  "tradingAccountRequest": "Request to Create Trading Account",
+  "tradingAccountPassword": "Your Trading Account Password",
+  "welcomeSubject": "Registration"
+}

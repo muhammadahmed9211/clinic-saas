@@ -1,0 +1,27 @@
+import { MigrationInterface, QueryRunner } from 'typeorm';
+
+export class Favourite1741679793355 implements MigrationInterface {
+  name = 'Favourite1741679793355';
+
+  public async up(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(
+      `CREATE TABLE "favourite_symbol" ("id" int NOT NULL IDENTITY(1,1), "userId" int NOT NULL, "symbolId" int NOT NULL, "isActive" bit NOT NULL CONSTRAINT "DF_b65eaca6613664401f394c53d11" DEFAULT 1, "createdAt" datetime2 NOT NULL CONSTRAINT "DF_c875463868084eba29133de073c" DEFAULT getdate(), "modifiedAt" datetime2 NOT NULL CONSTRAINT "DF_a59b8fefcf8509195b10fdbbcd4" DEFAULT getdate(), "deletedAt" datetime2, CONSTRAINT "UQ_4ac241b3b6dab5f8a5ae9ee9ba7" UNIQUE ("userId", "symbolId"), CONSTRAINT "PK_6b073ed33864b5baffa834f4308" PRIMARY KEY ("id"))`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "favourite_symbol" ADD CONSTRAINT "FK_c4d5a7d091f79f42960e00ebf78" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "favourite_symbol" ADD CONSTRAINT "FK_f4b9ad7cf62bd831f007dd0aada" FOREIGN KEY ("symbolId") REFERENCES "symbol"("id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+  }
+
+  public async down(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(
+      `ALTER TABLE "favourite_symbol" DROP CONSTRAINT "FK_f4b9ad7cf62bd831f007dd0aada"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "favourite_symbol" DROP CONSTRAINT "FK_c4d5a7d091f79f42960e00ebf78"`,
+    );
+    await queryRunner.query(`DROP TABLE "favourite_symbol"`);
+  }
+}
